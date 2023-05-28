@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Case, ForeignKey, ManyToManyField, Q, When
+from django.db.models.fields.json import JSONField
 from django.forms.models import model_to_dict
 
 from simple_history.exceptions import AlternativeManagerError, NotHistoricalModelError
@@ -19,7 +20,10 @@ def update_change_reason(instance, reason):
             if value is not None:
                 attrs[field.attname] = value
         else:
-            attrs[field.attname] = value
+            if isinstance(field, JSONField) and value is None:
+                attrs[f"{field.attname}__isnull"] = True
+            else:
+                attrs[field.attname] = value
 
     record = history.filter(**attrs).order_by("-history_date").first()
     record.history_change_reason = reason
